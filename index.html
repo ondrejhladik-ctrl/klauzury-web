@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ondřej Hladík</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- custom cursor -->
+<div id="cur">
+  <div class="dot"></div>
+  <div class="ring">
+    <svg class="ico-play"  viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="white"/></svg>
+    <svg class="ico-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="white"/></svg>
+  </div>
+</div>
+
+<!-- fold overlay -->
+<div id="fold-overlay">
+  <img id="fold-img" src="" alt="">
+</div>
+
+<!-- hero -->
+<section id="hero">
+  <div id="cstage">
+    <img id="cimg" src="assets/photo-case-front.png" alt="Bezedné noci — kazeta">
+  </div>
+  <canvas id="waveform"></canvas>
+  <p class="meta">ondřej hladík</p>
+  <a class="name name-link" href="explikace.html">explikace</a>
+</section>
+
+<!-- J-card -->
+<section id="jcard">
+  <div class="panel-wrap" data-fold="assets/jcard-fold-dark.png">
+    <span class="panel-tag">přední strana</span>
+    <figure class="panel"><img src="assets/art-dark.jpg" alt="Bezedné noci — přední strana"></figure>
+  </div>
+  <div class="panel-wrap" data-fold="assets/jcard-fold-light.png">
+    <span class="panel-tag">zadní strana</span>
+    <figure class="panel"><img src="assets/art-light.jpg" alt="Bezedné noci — zadní strana"></figure>
+  </div>
+</section>
+
+<!-- Object photos -->
+<section id="objects">
+  <span class="obj-label">objekt</span>
+  <div class="obj-row">
+    <figure class="obj" data-delay="0">
+      <img src="assets/photo-tape.jpg" alt="Kazeta">
+      <figcaption>kazeta</figcaption>
+    </figure>
+    <figure class="obj" data-delay="150">
+      <img src="assets/photo-case.jpg" alt="Kazeta v obalu">
+      <figcaption>zavřený obal</figcaption>
+    </figure>
+    <figure class="obj" data-delay="300">
+      <img src="assets/photo-open.jpg" alt="Otevřený obal">
+      <figcaption>otevřený obal</figcaption>
+    </figure>
+  </div>
+</section>
+
+<audio id="aud" src="assets/audio.mp3" preload="metadata"></audio>
+<script src="script.js"></script>
+</body>
+</html>

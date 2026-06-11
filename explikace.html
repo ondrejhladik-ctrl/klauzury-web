@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explikace — Ondřej Hladík</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #050509;
+      color: rgba(138, 172, 222, .82);
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: .88rem;
+      letter-spacing: .14em;
+      line-height: 1.85;
+      min-height: 100svh;
+      cursor: none;
+      overflow-x: hidden;
+    }
+
+    /* custom cursor */
+    #cur {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      top: -100px; left: -100px;
+    }
+    .dot {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 6px; height: 6px;
+      background: rgba(255,255,255,.55);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* back link — same position as .meta on main page */
+    .back {
+      position: fixed;
+      top: 2rem; left: 2.5rem;
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: .88rem;
+      letter-spacing: .14em;
+      color: rgba(138, 172, 222, .82);
+      text-decoration: none;
+      cursor: none;
+      transition: color .25s ease;
+      z-index: 10;
+    }
+    .back:hover { color: rgba(138, 172, 222, 1); }
+
+    /* text content */
+    #content {
+      padding: 8rem 2.5rem 8rem;
+      max-width: 640px;
+    }
+
+    .exp-meta {
+      margin-bottom: 3.5rem;
+      opacity: .55;
+    }
+    .exp-meta p + p { margin-top: .15rem; }
+
+    .exp-body p {
+      margin-bottom: 1.6rem;
+    }
+    .exp-body p:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+<div id="cur"><div class="dot"></div></div>
+
+<a class="back" href="index.html">← klauzurní práce</a>
+
+<main id="content">
+
+  <div class="exp-body">
+    <p>Kazeta obsahuje přepis snové aktivity a následného procitnutí. Hlavním inspiračním zdrojem pro vizuální zpracování byla má nálada při bezedných nocí a textů kapely LUK.</p>
+
+    <p>Audio nahrávka je sestavena ze zvuků vyrobených pomocí synťáků, kytary a terénních nahrávek. Vizuálu první stránky dominuje temně modrá plocha, která symbolizuje snovost a tmu. Ta se postupně mění ve světle modrou, která představuje vysvobození ránem.</p>
+
+    <p>V procesu navrhování jsem začal s tvorbou prvotních skic na grafickém tabletu. Cílem bylo najít správnou míru mezi abstrakcí a realismem. Samotná ilustrace vznikala kompletně v prostředí digitální kresby (Procreate). Postupně jsem skládal vrstvy, abych dosáhl patřičné hloubky pozadí. Na závěr jsem exportoval ilustraci a vložil ji do přesné šablony v programu Adobe InDesign. Zde proběhlo konečné doladění.</p>
+  </div>
+</main>
+
+<script>
+  // cursor follow
+  const cur = document.getElementById('cur');
+  document.addEventListener('mousemove', e => {
+    cur.style.left = e.clientX + 'px';
+    cur.style.top  = e.clientY + 'px';
+  });
+
+  // grain overlay
+  (function () {
+    const g = document.createElement('canvas');
+    g.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9998;opacity:.038;';
+    document.body.appendChild(g);
+    const ctx = g.getContext('2d');
+    const resize = () => { g.width = innerWidth; g.height = innerHeight; };
+    resize(); window.addEventListener('resize', resize);
+    let f = 0;
+    (function tick() {
+      if (++f % 3 === 0) {
+        const id = ctx.createImageData(g.width, g.height);
+        for (let i = 0; i < id.data.length; i += 4) {
+          const v = Math.random() * 255;
+          id.data[i] = id.data[i+1] = id.data[i+2] = v; id.data[i+3] = 255;
+        }
+        ctx.putImageData(id, 0, 0);
+      }
+      requestAnimationFrame(tick);
+    })();
+  })();
+</script>
+</body>
+</html>
