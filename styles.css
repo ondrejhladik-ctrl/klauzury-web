@@ -1,15 +1,32 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
+:root {
+  --dither-ink: #8c9db5;   /* barva bodů rastru i písma (šedomodrá) */
+  --font-display: 'Anton', Impact, 'Arial Narrow', sans-serif;
+}
+
 body {
-  background: #050509;
+  background: #000;
   color: #fff;
   font-family: 'EB Garamond', Georgia, serif;
   overflow-x: hidden;
-  cursor: none;
 }
 
-/* ─ Custom cursor ─────────────────────────────────────── */
+/* ─ Kurzor Windows XP (nativní, přes CSS) ─────────────── */
+/* šipka: assets/cursor-arrow*.png (hrot 0,0); ručička nad klikacími prvky: assets/cursor-hand*.png (špička prstu 5,0) */
+body, .xp-arrow {
+  cursor: url(assets/cursor-arrow.png) 0 0, auto;
+  cursor: -webkit-image-set(url(assets/cursor-arrow.png) 1x, url(assets/cursor-arrow@2x.png) 2x) 0 0, auto;
+  cursor: image-set(url(assets/cursor-arrow.png) 1x, url(assets/cursor-arrow@2x.png) 2x) 0 0, auto;
+}
+a, button, .panel-wrap, #fold-overlay, .xp-hand {
+  cursor: url(assets/cursor-hand.png) 5 0, pointer;
+  cursor: -webkit-image-set(url(assets/cursor-hand.png) 1x, url(assets/cursor-hand@2x.png) 2x) 5 0, pointer;
+  cursor: image-set(url(assets/cursor-hand.png) 1x, url(assets/cursor-hand@2x.png) 2x) 5 0, pointer;
+}
+
+/* ─ Play/pause nad kazetou (JS, sleduje myš) ───────────── */
 #cur {
   position: fixed;
   z-index: 9999;
@@ -17,40 +34,35 @@ body {
   transform: translate(-50%, -50%);
   top: -100px; left: -100px;
 }
-.dot {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 6px; height: 6px;
-  background: rgba(255,255,255,.55);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  transition: transform .28s ease, opacity .28s ease;
-}
 .ring {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,0);
+  width: 56px; height: 56px;
   display: flex; align-items: center; justify-content: center;
-  transition: border-color .28s ease;
   position: relative;
 }
-.ring svg {
-  width: 18px; height: 18px;
+.ico-wrap, .ring svg {
   position: absolute;
+  width: 44px; height: 44px;
   opacity: 0;
   transition: opacity .2s ease;
 }
-.ico-pause { display: none; }
+.ico-wrap { perspective: 220px; }
+.ico {
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  animation: cur-spin 2.8s linear infinite;
+}
+/* vrstvy v hloubce = tloušťka (rozměr, posun i stín vrstev nastaví JS) */
+.ico canvas {
+  position: absolute; left: 50%; top: 50%;
+  image-rendering: pixelated;
+}
+@keyframes cur-spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+#cur.no-img .ico-wrap { display: none; }   /* SVG se nenačetlo -> plochá náhrada */
+#cur:not(.no-img) svg { display: none; }
 
-#cur.over .dot        { transform: translate(-50%,-50%) scale(0); opacity: 0; }
-#cur.over .ring       { border-color: rgba(255,255,255,.8); }
-#cur.over .ico-play   { opacity: 1; }
-
-#cur.over.playing .ico-play  { opacity: 0; }
-#cur.over.playing .ico-pause { display: block; opacity: 1; }
-
-/* slightly larger dot over clickable panels */
-#cur.on-panel .dot { transform: translate(-50%,-50%) scale(2.2); opacity: .7; }
+#cur.hidden                        { display: none; }   /* během cutscény */
+#cur.over:not(.playing) .ico-play  { opacity: 1; }
+#cur.over.playing       .ico-pause { opacity: 1; }
 
 /* ─ Fold overlay ──────────────────────────────────────── */
 #fold-overlay {
@@ -64,7 +76,6 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity .5s ease;
-  cursor: none;
 }
 #fold-overlay.open {
   opacity: 1;
@@ -93,22 +104,78 @@ body {
   overflow: hidden;
 }
 
-#cstage {
+/* obří CLICK v pozadí (za kazetou) — zapíná se nad šipkou a otazníkem */
+#click-bg {
   position: absolute;
   left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  image-rendering: pixelated;
+  transition: opacity .8s ease;
+}
+#click-bg.show { opacity: .42; }
+
+/* ─ Cutscéna po spuštění kazety ───────────────────────── */
+/* tma -> obličej (otevírá oči) -> tma se zvedne a je tam otevřená kazeta */
+#cut {
+  position: fixed;
+  inset: 0;
+  z-index: 8500;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .45s ease;
+}
+#cut.on { opacity: 1; pointer-events: all; }
+/* závěr: poslední snímek obalu i tma se pomalu rozpustí do hera s otevřenou kazetou */
+#cut.ending           { transition: opacity 1.6s ease; }
+#cut.ending #cut-case { transition: opacity 1.4s ease; }
+#cut-face, #cut-case {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity .7s ease;
+  image-rendering: pixelated;
+}
+#cut.face #cut-face { opacity: 1; }
+#cut.case #cut-case { opacity: 1; }
+
+#cstage {
+  position: absolute;
+  left: 50%; top: 42%;
   transform: translate(-50%, -50%);
   perspective: 1400px;
   z-index: 2;
 }
 
+#cwrap {
+  position: relative;
+  width: clamp(200px, min(34vw, 46svh), 440px);     /* zavřený obal je na výšku */
+  will-change: transform;
+  cursor: none;            /* místo kurzoru je nad kazetou play/pause */
+}
+
+#cwrap.open { width: clamp(280px, min(46vw, 64svh), 600px); }   /* otevřená kazeta na šířku */
+
 #cimg {
   display: block;
-  width: clamp(280px, 46vw, 600px);
+  width: 100%;
   height: auto;
   mix-blend-mode: screen;
-  will-change: transform;
   cursor: none;
 }
+
+/* rastrovaná verze — canvas nahradí fotku, jakmile je vykreslená */
+#cdith {
+  display: none;
+  image-rendering: pixelated;
+  cursor: none;
+}
+#cwrap.dithered #cimg  { display: none; }
+#cwrap.dithered #cdith { display: block; }
 
 #waveform {
   position: absolute;
@@ -116,151 +183,145 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: min(80vw, 640px);
-  height: 36px;
+  height: 48px;
   pointer-events: none;
   z-index: 3;
+  image-rendering: pixelated;
 }
+
+/* šipka pod kazetou — odkryje zbytek stránky */
+#arrow {
+  position: absolute;
+  left: 2.5rem;
+  bottom: 2.5rem;
+  z-index: 4;
+  padding: 14px 22px;
+  background: none;
+  border: 0;
+  transition: opacity .6s ease;
+}
+#arrow.done { opacity: 0; pointer-events: none; transition: none; }   /* body se rozletí, šipka zmizí hned */
+#adith {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* rozlet bodů šipky — přes celé okno */
+#burst {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 8000;
+}
+
+/* J-card je schovaný, dokud se neklikne na šipku */
+body.gated #jcard { display: none; }
 
 /* ─ Hero labels ────────────────────────────────────────── */
-.meta {
-  position: absolute;
-  top: 2rem; left: 2.5rem;
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: .88rem;
-  letter-spacing: .14em;
-  color: rgba(138, 172, 222, .82);
-  z-index: 10;
-  pointer-events: none;
-  user-select: none;
-}
-
 .name {
   position: absolute;
-  top: 2rem; right: 2.5rem;
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: .88rem;
-  letter-spacing: .14em;
-  color: rgba(138, 172, 222, .82);
+  top: 1.6rem; right: 2.2rem;
+  padding: 10px 14px;
   z-index: 10;
-  pointer-events: none;
   user-select: none;
 }
-
 .name-link {
-  pointer-events: all;
-  cursor: none;
   text-decoration: none;
-  color: rgba(138, 172, 222, .82);
-  transition: color .25s ease;
 }
-.name-link:hover {
-  color: rgba(138, 172, 222, 1);
+
+/* kruh pod otazníkem — jen při přehrávání */
+#fxbtn {
+  position: absolute;
+  top: 7.4rem; right: 2.2rem;
+  padding: 10px 14px;
+  background: none;
+  border: 0;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .5s ease;
 }
+#fxbtn.show { opacity: 1; pointer-events: all; }
+#fxdith { display: block; image-rendering: pixelated; }
+
+/* lišty efektů — svislé, po stranách hera */
+#fx {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+.fx-side {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 1.6rem;
+  opacity: 0;
+  transition: opacity .5s ease, transform .5s ease;
+}
+.fx-left  { left: 3rem;  transform: translate(-30px, -50%); }
+.fx-right { right: 3rem; transform: translate(30px, -50%); }
+#fx.open .fx-side { opacity: 1; pointer-events: all; transform: translate(0, -50%); }
+.fx-slider { cursor: ns-resize; text-align: center; }
+.fx-slider canvas { display: block; image-rendering: pixelated; }
+.fx-slider span {                       /* popisek — normální text, v rastru by byl nečitelný */
+  display: block;
+  margin-top: .3rem;
+  font-family: var(--font-display);
+  font-size: .85rem;
+  letter-spacing: .08em;
+  color: var(--dither-ink);
+  opacity: .8;
+}
+@media (max-width: 900px) { .fx-side { display: none; } }
+#qdith { display: block; image-rendering: pixelated; }
 
 /* ─ J-card ────────────────────────────────────────────── */
 #jcard {
-  background: #050509;
+  background: #000;
+  padding: 6vh 2.5rem;
 }
 
+/* strany obalu: zúžené na střed, v rastru jako zavřený obal; při hoveru se prolne plná fotka */
 .panel-wrap {
-  border-top: 1px solid rgba(255,255,255,.08);
-  cursor: none;
+  max-width: 1100px;
+  margin: 0 auto 5vh;
 }
-
-.panel-tag {
-  display: block;
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: .82rem;
-  letter-spacing: .12em;
-  color: rgba(138, 172, 222, .68);
-  padding: 1.4rem 2.5rem .9rem;
-  transition: color .3s ease;
-}
-.panel-wrap:hover .panel-tag {
-  color: rgba(138, 172, 222, .90);
-}
+.panel-wrap:last-child { margin-bottom: 0; }
 
 .panel {
+  position: relative;
   display: block;
   width: 100%;
   overflow: hidden;
   line-height: 0;
   margin: 0;
-}
-
-.panel img {
-  width: 100%;
-  height: auto;
-  display: block;
   opacity: 0;
   transform: perspective(1000px) rotateX(-5deg) translateY(30px);
   transition: opacity 1.6s cubic-bezier(.18,.75,.18,1),
               transform 1.6s cubic-bezier(.18,.75,.18,1);
 }
-.panel img.in {
+.panel.in {
   opacity: 1;
   transform: perspective(1000px) rotateX(0deg) translateY(0);
 }
-.panel-wrap:hover .panel img.in {
-  transform: perspective(1000px) rotateX(-1deg) scale(1.005);
-}
-
-/* ─ Objects ───────────────────────────────────────────── */
-#objects {
-  border-top: 1px solid rgba(255,255,255,.08);
-  padding: 1.4rem 2.5rem 10vh;
-  background: #050509;
-}
-
-.obj-label {
-  display: block;
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: .82rem;
-  letter-spacing: .12em;
-  color: rgba(138, 172, 222, .68);
-  margin-bottom: 4vh;
-}
-
-.obj-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: clamp(1rem, 3vw, 3rem);
-  max-width: 1100px;
+.panel img {
   width: 100%;
-  margin: 0 auto;
-  align-items: end;
-}
-
-.obj {
-  margin: 0;
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 1.4s ease, transform 1.4s ease;
-  display: flex;
-  flex-direction: column;
-}
-.obj.in {
-  opacity: 1;
-  transform: none;
-}
-.obj img {
-  width: 100%;
-  height: clamp(200px, 26vw, 380px);
-  object-fit: contain;
-  object-position: bottom;
+  height: auto;
   display: block;
-  mix-blend-mode: screen;
-  transition: transform .6s cubic-bezier(.2,.7,.2,1);
-  flex-shrink: 0;
+  opacity: 0;                       /* plná kvalita jen při hoveru */
+  transition: opacity .7s ease;
 }
-.obj:hover img {
-  transform: scale(1.03);
+.panel canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  image-rendering: pixelated;
+  transition: opacity .7s ease;
 }
-.obj figcaption {
-  font-family: 'EB Garamond', Georgia, serif;
-  font-size: .78rem;
-  letter-spacing: .10em;
-  color: rgba(138, 172, 222, .62);
-  margin-top: .9rem;
-  flex-shrink: 0;
-}
+.panel:not(.dithered) img { opacity: 1; }        /* bez rastru (file://) zůstane fotka */
+.panel-wrap:hover .panel img    { opacity: 1; }
+.panel-wrap:hover .panel canvas { opacity: 0; }

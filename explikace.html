@@ -5,77 +5,144 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Explikace — Ondřej Hladík</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=VT323&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --dither-ink: #8c9db5; }   /* barva bodů rastru — stejná jako na hlavní stránce */
 
     body {
-      background: #050509;
-      color: rgba(138, 172, 222, .82);
-      font-family: 'EB Garamond', Georgia, serif;
-      font-size: .88rem;
-      letter-spacing: .14em;
-      line-height: 1.85;
+      background: #000;
+      color: var(--dither-ink);                          /* stejná barva jako nadpis (body rastru) */
+      font-family: 'VT323', 'Courier New', monospace;   /* pixelový terminálový font */
+      font-size: 1.35rem;
+      letter-spacing: .04em;
+      line-height: 1.5;
       min-height: 100svh;
-      cursor: none;
       overflow-x: hidden;
     }
 
-    /* custom cursor */
-    #cur {
-      position: fixed;
-      z-index: 9999;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      top: -100px; left: -100px;
+    /* ─ Kurzor Windows XP (nativní, přes CSS) ─────────────── */
+    /* šipka: assets/cursor-arrow*.png (hrot 0,0); ručička nad klikacími prvky: assets/cursor-hand*.png (špička prstu 5,0) */
+    body, .xp-arrow {
+      cursor: url(assets/cursor-arrow.png) 0 0, auto;
+      cursor: -webkit-image-set(url(assets/cursor-arrow.png) 1x, url(assets/cursor-arrow@2x.png) 2x) 0 0, auto;
+      cursor: image-set(url(assets/cursor-arrow.png) 1x, url(assets/cursor-arrow@2x.png) 2x) 0 0, auto;
     }
-    .dot {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 6px; height: 6px;
-      background: rgba(255,255,255,.55);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
+    a, button, .panel-wrap, #fold-overlay, .xp-hand {
+      cursor: url(assets/cursor-hand.png) 5 0, pointer;
+      cursor: -webkit-image-set(url(assets/cursor-hand.png) 1x, url(assets/cursor-hand@2x.png) 2x) 5 0, pointer;
+      cursor: image-set(url(assets/cursor-hand.png) 1x, url(assets/cursor-hand@2x.png) 2x) 5 0, pointer;
     }
 
-    /* back link — same position as .meta on main page */
+    /* titulky (zpět + jméno) — text z Antonu, minusky, přes stejný rastr jako kazeta, bez rozostření;
+       oba mají stejnou výšku písma (--title-h) */
+    :root { --title-h: 96px; }
+    .title canvas { display: block; image-rendering: pixelated; }
+    .title .sr {            /* text jen pro čtečky a vyhledávače */
+      position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+    }
+    body.reading .back { opacity: 0; pointer-events: none; }   /* po kliknutí na papír titul zmizí */
+    #back-arrow {
+      position: fixed;
+      top: 2rem; left: 2.5rem;
+      padding: 10px 14px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .8s ease;
+      z-index: 10;
+    }
+    body.reading #back-arrow { opacity: 1; pointer-events: all; }
+    #back-arrow canvas { display: block; image-rendering: pixelated; }
     .back {
       position: fixed;
       top: 2rem; left: 2.5rem;
-      font-family: 'EB Garamond', Georgia, serif;
-      font-size: .88rem;
-      letter-spacing: .14em;
-      color: rgba(138, 172, 222, .82);
+      transition: opacity .8s ease;
+      display: flex;
+      align-items: center;
+      gap: 1.4rem;
       text-decoration: none;
-      cursor: none;
-      transition: color .25s ease;
       z-index: 10;
     }
-    .back:hover { color: rgba(138, 172, 222, 1); }
 
     /* text content */
     #content {
-      padding: 8rem 2.5rem 8rem;
+      padding: 15rem 2.5rem 8rem;
       max-width: 640px;
     }
+    /* při čtení leží text na papíru: stejný rám jako zvětšený papír, vycentrovaný, s okrajem */
+    body.reading #content {
+      position: fixed;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(82vw, 66vh);
+      max-width: none;
+      max-height: 92vh;
+      padding: 5vh 6vw;
+      overflow: hidden;
+      z-index: 6;
+      font-size: 1.2rem;
+      line-height: 1.55;
+      text-shadow: 0 0 6px #000, 0 0 2px #000;   /* ať text drží nad body papíru */
+    }
+    body.reading #content .ch { color: #c9d4e6; }
+    body.reading #content .ch.dim { opacity: .45; }
 
-    .exp-meta {
-      margin-bottom: 3.5rem;
+    /* fotka sešitu pod nadpisem — v rastru jako snímky v cutscéně; klik ji nahradí textem */
+    #note {                     /* sešit uprostřed obrazovky (pod nadpisem) */
+      position: fixed;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -34%);
+      width: min(50vw, 46vh);
+      background: none;
+      border: 0;
+      padding: 0;
+      opacity: 0;
+      transition: opacity .9s ease, transform 1.1s cubic-bezier(.2,.8,.2,1), width 1.1s cubic-bezier(.2,.8,.2,1);
+      z-index: 5;
+    }
+    #note.show { opacity: 1; }
+    /* po kliknutí: papír se zvětší na výšku okna, jde na střed a ustoupí do pozadí (body přebarví JS na tmavě šedou) */
+    #note.big { transform: translate(-50%, -50%); width: min(82vw, 66vh); pointer-events: none; }
+    #note.gone { opacity: 0; pointer-events: none; }
+    #note canvas { display: block; width: 100% !important; height: auto !important; aspect-ratio: 900 / 1186; image-rendering: pixelated; }
+    #note img { display: block; width: 100%; opacity: .5; }
+    #note.dithered img { display: none; }
+    #note:not(.dithered) canvas { display: none; }
+
+    /* text explikace je schovaný, dokud se neklikne na fotku; pak se píše po písmenech */
+    #content:not(.typed) .exp-body,
+    #content:not(.typed) .exp-author { display: none; }
+    .exp-body .ch.wait, .exp-author .ch.wait { visibility: hidden; }
+    .caret { display: inline-block; width: .55em; height: 1em; vertical-align: -.15em; background: var(--dither-ink); animation: caret 1s steps(2) infinite; }
+    @keyframes caret { 50% { opacity: 0; } }
+
+    .exp-author {                /* autor pod textem — běžné písmo, minusky */
+      margin-top: 3rem;
       opacity: .55;
     }
-    .exp-meta p + p { margin-top: .15rem; }
 
     .exp-body p {
       margin-bottom: 1.6rem;
     }
     .exp-body p:last-child { margin-bottom: 0; }
+
+    /* šum v textu: písmena se každé chvíli na okamžik ztlumí nebo rozsvítí (jako na starém monitoru) */
+    .exp-body .ch, .exp-author .ch { display: inline; transition: opacity .12s steps(2), color .12s steps(2); }
+    .exp-body .ch.dim  { opacity: .35; }
+    .exp-body .ch.hot  { color: #dfe6f2; }
   </style>
 </head>
 <body>
 
-<div id="cur"><div class="dot"></div></div>
+<a class="back title" href="index.html" aria-label="Explikace klauzurní práce — zpět"><canvas data-text="EXPLIKACE KLAUZURNÍ PRÁCE" aria-hidden="true"></canvas></a>
+<!-- šipka zpět při čtení — stejný znak jako na hlavní stránce, v barvě papíru -->
+<a id="back-arrow" href="index.html" aria-label="Zpět na klauzurní práci"><canvas aria-hidden="true"></canvas></a>
 
-<a class="back" href="index.html">← klauzurní práce</a>
+<!-- papír je mimo <main>: při čtení je #content fixed + transform a papír uvnitř by se do něj ořízl -->
+<button id="note" type="button" aria-label="Zobrazit explikaci">
+  <img src="assets/notebook.jpg" alt="">
+  <canvas id="ndith" aria-hidden="true"></canvas>
+</button>
 
 <main id="content">
 
@@ -83,18 +150,115 @@
     <p>Kazeta obsahuje přepis snové aktivity a následného procitnutí. Hlavním inspiračním zdrojem pro vizuální zpracování byla má nálada při bezedných nocí a textů kapely LUK.</p>
 
     <p>Audio nahrávka je sestavena ze zvuků vyrobených pomocí synťáků, kytary a terénních nahrávek. Vizuálu první stránky dominuje temně modrá plocha, která symbolizuje snovost a tmu. Ta se postupně mění ve světle modrou, která představuje vysvobození ránem.</p>
-
-    <p>V procesu navrhování jsem začal s tvorbou prvotních skic na grafickém tabletu. Cílem bylo najít správnou míru mezi abstrakcí a realismem. Samotná ilustrace vznikala kompletně v prostředí digitální kresby (Procreate). Postupně jsem skládal vrstvy, abych dosáhl patřičné hloubky pozadí. Na závěr jsem exportoval ilustraci a vložil ji do přesné šablony v programu Adobe InDesign. Zde proběhlo konečné doladění.</p>
   </div>
+
+  <p class="exp-author">ondřej hladík — autor práce: kazeta, ilustrace, zvuk i web</p>
 </main>
 
+<script src="dither.js"></script>
 <script>
-  // cursor follow
-  const cur = document.getElementById('cur');
-  document.addEventListener('mousemove', e => {
-    cur.style.left = e.clientX + 'px';
-    cur.style.top  = e.clientY + 'px';
-  });
+  // rastry na stránce: [{el, dith, flicker}] — každý snímek se překreslí s chvěním bodů
+  const rasters = [];
+  (function tick() { requestAnimationFrame(tick); for (const r of rasters) if (onScreen(r.el)) r.dith.render(0, r.big && r.big() ? .05 : (r.flicker ?? .05)); })();   // zvětšený papír se chvěje jen málo
+
+  // text: každé písmeno je span. Na začátku schované; po kliknutí na fotku se píše po písmenech,
+  // potom se v něm ~10× za s náhodná písmena ztlumí nebo rozsvítí (šum jako na starém monitoru)
+  const typed = { chars: [], all: [], done: false };
+  (function () {
+    document.querySelectorAll('.exp-body p, .exp-author').forEach(p => {
+      const text = p.textContent; p.textContent = '';
+      for (const ch of text) { const s = document.createElement('span'); s.className = 'ch wait'; s.textContent = ch; p.appendChild(s); typed.all.push(s); if (ch.trim()) typed.chars.push(s); }
+    });
+    let next = 0;
+    (function tick(now) {
+      requestAnimationFrame(tick);
+      if (!typed.done || now < next) return; next = now + 100;
+      const chars = typed.chars;
+      for (const s of chars) { if (s.classList.contains('dim') || s.classList.contains('hot')) { if (Math.random() < .6) s.classList.remove('dim', 'hot'); } }
+      const n = Math.max(1, Math.round(chars.length * .012));
+      for (let i = 0; i < n; i++) { const s = chars[Math.floor(Math.random() * chars.length)]; s.classList.add(Math.random() < .7 ? 'dim' : 'hot'); }
+    })(0);
+  })();
+
+  // fotka sešitu: kontrast + hrany + rastr (jako snímky obalu v cutscéně); klik -> fotka pryč, text se píše
+  (function () {
+    const note = document.getElementById('note'), content = document.getElementById('content');
+    // papír je světlý a písmo tmavé -> invertovat, aby v rastru svítilo písmo a linky, ne papír
+    const ndith = createDither(document.getElementById('ndith'), { cell: 2, gap: 1, black: .18, white: .75, gamma: .9, blur: 1 });
+    loadImage('assets/notebook.jpg').then(im => {
+      if (!im) { note.classList.add('gone'); startTyping(); return; }
+      const c = document.createElement('canvas'); c.width = 600; c.height = Math.round(600 * im.naturalHeight / im.naturalWidth);
+      const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+      x.filter = 'invert(1) grayscale(1) contrast(1.8) brightness(1.05)'; x.drawImage(im, 0, 0, c.width, c.height); x.filter = 'none';
+      edgeBoost(x, c.width, c.height, .9);
+      if (ndith.setImage(c)) { note.classList.add('dithered'); rasters.push({ el: note, dith: ndith, flicker: .2, big: () => note.classList.contains('big') }); }
+      note.classList.add('show');
+    });
+    let started = false;
+    function startTyping() {
+      if (started) return; started = true;
+      document.body.classList.add('reading');                    // titul zmizí
+      note.classList.add('big');                                 // papír se zvětší na střed…
+      ndith.setInk('#23262c'); ndith.render(0, 0);               // …a jeho body ztmavnou do šedé (canvas se jen roztáhne CSS)
+      setTimeout(() => {
+        ndith.layout(); ndith.render(0, 0);                      // po dojetí animace překreslit rastr v novém rozlišení
+        content.classList.add('typed');
+        const caret = document.createElement('span'); caret.className = 'caret';
+        let i = 0;
+        (function step() {
+          if (i >= typed.all.length) { caret.remove(); typed.done = true; return; }
+          const s = typed.all[i++];
+          s.classList.remove('wait');
+          s.parentNode.insertBefore(caret, s.nextSibling);
+          const ch = s.textContent;
+          setTimeout(step, ch === ' ' ? 18 : /[.,]/.test(ch) ? 140 : 14 + Math.random() * 22);   // sekaně, s pauzou na interpunkci
+        })();
+      }, 1200);
+    }
+    note.addEventListener('click', startTyping);
+  })();
+
+
+  // titulky: text se vykreslí do canvasu (bílá na černé) a prožene rastrem bez rozostření;
+  // zdroj se kreslí 6× větší, výška písma na stránce je --title-h u obou stejná
+  (function () {
+    const FONT = 'Anton, Impact, "Arial Narrow", sans-serif';
+    const SCALE = 6;
+    const h = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--title-h')) || 40;
+    // písmena vedle sebe jako u obřího CLICK na hlavní stránce (bez umělého prokladu)
+    function textCanvas(text, px, spacing = 0) {
+      const c = document.createElement('canvas'), x = c.getContext('2d');
+      const font = `${px}px ${FONT}`;
+      x.font = font;
+      const chars = [...text], widths = chars.map(ch => x.measureText(ch).width), gap = px * spacing;
+      const m = x.measureText(text), pad = px * .08;
+      c.width  = Math.ceil(widths.reduce((a, b) => a + b, 0) + gap * (chars.length - 1) + pad * 2);
+      c.height = Math.ceil(m.actualBoundingBoxAscent + m.actualBoundingBoxDescent + pad * 2);
+      x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height);
+      x.font = font; x.fillStyle = '#fff'; x.textBaseline = 'alphabetic';
+      let cx = pad;
+      chars.forEach((ch, i) => { x.fillText(ch, cx, pad + m.actualBoundingBoxAscent); cx += widths[i] + gap; });
+      return c;
+    }
+
+    // šipka doleva (zpět) — jako šipka na hlavní stránce, jen otočená a v barvě papíru při čtení
+    const backEl = document.getElementById('back-arrow');
+    const backArrow = makeGlyph(backEl.querySelector('canvas'), 90, 60, (c) => {
+      c.fillRect(36, 22, 54, 16);                                            // dřík
+      c.beginPath(); c.moveTo(40, 2); c.lineTo(40, 58); c.lineTo(2, 30);     // hrot doleva
+      c.closePath(); c.fill();
+    }, backEl, null, 'left');
+    backArrow.dith.setInk('#23262c');
+    (function tick() { requestAnimationFrame(tick); if (document.body.classList.contains('reading')) backArrow.tick(performance.now()); })();
+
+    (document.fonts ? document.fonts.load(`${h}px Anton`) : Promise.resolve()).then(() => {
+      document.querySelectorAll('.title canvas[data-text]').forEach(cv => {
+        const src  = textCanvas(cv.dataset.text, h * SCALE);
+        const dith = createDither(cv, { cell: 3, gap: 1, black: .02, white: .8, width: () => src.width / SCALE });   // jako CLICK, ale bez rozostření
+        if (dith.setImage(src)) rasters.push({ el: cv, dith, flicker: .45 });   // silné chvění jako CLICK
+      });
+    });
+  })();
 
   // grain overlay
   (function () {
